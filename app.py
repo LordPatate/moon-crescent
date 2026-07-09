@@ -25,6 +25,28 @@ def default_background(size: Coordinate = DEFAULT_DISPLAY_SIZE):
     return bkg
 
 
+def load_image(path: Path | str, scale: float = 1.):
+    image = pygame.image.load(path).convert()
+    image = pygame.transform.scale_by(image, scale)
+    return image
+
+
+def proportional_blit(source: Surface, dest: Surface, x: float, y: float, *blit_args) -> None:
+    """Blit source on dest.
+    x and y are coordinates relative to dest's top-left corner;
+    expressed as proportions of dest width and height respectively;
+    and describe the desired position of the center of source.
+    """
+    source_w, source_h = source.get_size()
+    dest_w, dest_h = dest.get_size()
+    x_offset, y_offset = source_w // 2, source_h // 2
+    pos = (
+        int(dest_w * x) - x_offset,
+        int(dest_h * y) - y_offset,
+    )
+    dest.blit(source, pos, *blit_args)
+
+
 class App:
     def __init__(
             self,
