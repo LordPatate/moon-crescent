@@ -1,28 +1,13 @@
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Protocol, Tuple, Union
+from typing import Tuple, Union
 
 import pygame
-from pygame import Color, Surface, Vector2, sprite
+from pygame import Color, Rect, Surface, Vector2, sprite
 
 Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
 EventTypeID = int
 DEFAULT_DISPLAY_SIZE = (1280, 720)
-
-
-class SurfaceFromSizeFactory(Protocol):
-    def __call__(self, size: Coordinate = (0, 0)) -> Surface: ...
-
-
-def default_display(size: Coordinate = DEFAULT_DISPLAY_SIZE):
-    display_flags = pygame.SCALED | pygame.RESIZABLE
-    return pygame.display.set_mode(size, flags=display_flags)
-
-
-def default_background(size: Coordinate = DEFAULT_DISPLAY_SIZE):
-    bkg = Surface(size).convert()
-    bkg.fill(Color("grey"))
-    return bkg
 
 
 def load_image(path: Path | str, scale: float = 1.):
@@ -31,7 +16,7 @@ def load_image(path: Path | str, scale: float = 1.):
     return image
 
 
-def proportional_blit(source: Surface, dest: Surface, x: float, y: float, *blit_args) -> None:
+def proportional_blit(source: Surface, dest: Surface, x: float, y: float, *blit_args) -> Rect:
     """Blit source on dest.
     x and y are coordinates relative to dest's top-left corner;
     expressed as proportions of dest width and height respectively;
@@ -44,20 +29,14 @@ def proportional_blit(source: Surface, dest: Surface, x: float, y: float, *blit_
         int(dest_w * x) - x_offset,
         int(dest_h * y) - y_offset,
     )
-    dest.blit(source, pos, *blit_args)
+    return dest.blit(source, pos, *blit_args)
 
 
 class App:
-    def __init__(
-            self,
-            display_factory: SurfaceFromSizeFactory = default_display,
-            background_factory: SurfaceFromSizeFactory = default_background,
-    ) -> None:
+    def __init__(self) -> None:
         self.running: bool = False
         self.clock = pygame.time.Clock()
-        self.make_screen: SurfaceFromSizeFactory = display_factory
         self.screen: Surface = self.make_screen()
-        self.make_background: SurfaceFromSizeFactory = background_factory
         self.background: Surface = self.make_background()
         self.sprites: sprite.LayeredDirty = sprite.LayeredDirty()
         self.event_handler: Mapping[EventTypeID, Callable[[App, pygame.Event], None]] = {
@@ -98,6 +77,15 @@ class App:
 
     def on_exit(self) -> None:
         """Called when receiving a QUIT event."""
+
+    def make_background(self, size: Coordinate = DEFAULT_DISPLAY_SIZE):
+        bkg = Surface(size).convert()
+        bkg.fill(Color("grey"))
+        return bkg
+
+    def make_screen(self, size: Coordinate = DEFAULT_DISPLAY_SIZE):
+        display_flags = pygame.SCALED | pygame.RESIZABLE
+        return pygame.display.set_mode(size, flags=display_flags)
 
     def _quit_loop(self, _) -> None:
         self.running = False
