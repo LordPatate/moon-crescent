@@ -1,35 +1,42 @@
 from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 from typing import Protocol, Tuple, Union
 
 import pygame
-from pygame import Vector2, sprite, Surface
+from pygame import Color, Surface, Vector2, sprite
 
 Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
 EventTypeID = int
+DEFAULT_DISPLAY_SIZE = (1280, 720)
 
 
-class DisplayFactory(Protocol):
+class SurfaceFromSizeFactory(Protocol):
     def __call__(self, size: Coordinate = (0, 0)) -> Surface: ...
 
 
-def default_display(size: Coordinate = (1280, 720)):
-    return pygame.display.set_mode(size, flags=(pygame.SCALED | pygame.RESIZABLE))
+def default_display(size: Coordinate = DEFAULT_DISPLAY_SIZE):
+    display_flags = pygame.SCALED | pygame.RESIZABLE
+    return pygame.display.set_mode(size, flags=display_flags)
 
 
-def default_background(display: Surface):
-    bkg = Surface(display.get_size()).convert()
-    bkg.fill(pygame.Color("grey"))
-    display.blit(bkg, (0, 0))
+def default_background(size: Coordinate = DEFAULT_DISPLAY_SIZE):
+    bkg = Surface(size).convert()
+    bkg.fill(Color("grey"))
     return bkg
 
 
 class App:
-    def __init__(self, display_factory: DisplayFactory = default_display, background=None) -> None:
+    def __init__(
+            self,
+            display_factory: SurfaceFromSizeFactory = default_display,
+            background_factory: SurfaceFromSizeFactory = default_background,
+    ) -> None:
         self.running: bool = False
         self.clock = pygame.time.Clock()
-        self.make_screen: DisplayFactory = display_factory
+        self.make_screen: SurfaceFromSizeFactory = display_factory
         self.screen: Surface = self.make_screen()
-        self.background: Surface = background or default_background(self.screen)
+        self.make_background: SurfaceFromSizeFactory = background_factory
+        self.background: Surface = self.make_background()
         self.sprites: sprite.LayeredDirty = sprite.LayeredDirty()
         self.event_handler: Mapping[EventTypeID, Callable[[App, pygame.Event], None]] = {
             pygame.QUIT: App._quit_loop,
@@ -38,6 +45,8 @@ class App:
 
     def run(self) -> None:
         """Run the main loop."""
+        self.screen.blit(self.background, (0, 0))
+        pygame.display.flip()
         self.running = True
         self.on_start()
         while self.running:
