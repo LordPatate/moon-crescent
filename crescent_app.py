@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+import math
 from pathlib import Path
 
+from broadcaster import BroadCaster
 import pygame
 from pygame import Color, Rect, Surface
 
@@ -13,21 +15,22 @@ class Circle:
     radius: float
 
 
-class SliderControl(pygame.sprite.WeakDirtySprite):
+class SliderControl(pygame.sprite.WeakDirtySprite, BroadCaster):
     colorset = [("darkred", "red"), ("yellow3", "yellow")]
 
     def __init__(self, pos: Coordinate, min_val: float, max_val: float, segment_length: int, *groups) -> None:
         super().__init__(*groups)
+        BroadCaster.__init__(self)
         self.clicked = False
         self.min_val = min_val
         self.max_val = max_val
         self.segment_length = segment_length  # length, in pixel, of the segment on which the button will slide
         self.val = (max_val - min_val) / 2 + min_val
         self.x_pos = 10 + segment_length // 2  # current position of the button relative to the image
-        self.update_img()
         self.rect = Rect(pos, (segment_length + 20, 30))
+        self.update()
 
-    def update_img(self):
+    def update(self):
         self.image = Surface((self.segment_length + 20, 30))
         line_color, button_color = self.colorset[int(self.clicked)]
         pygame.draw.line(self.image, line_color, (10, 15), (10 + self.segment_length, 15))
@@ -42,33 +45,81 @@ class SliderControl(pygame.sprite.WeakDirtySprite):
         self.x_pos = x
         x -= 10  # relative to segment
         self.val = x / self.segment_length * (self.max_val - self.min_val)
-        self.update_img()
+        self.update()
         return self.val
 
     def on_clicked(self, pos: Coordinate):
         if not self.clicked and self.rect.collidepoint(pos):
             self.clicked = True
-            self.move_to(int(pos[0]))
+            self.broadcast(self.move_to(int(pos[0])))
 
     def on_move(self, pos: Coordinate):
         if self.clicked:
-            self.move_to(int(pos[0]))
+            self.broadcast(self.move_to(int(pos[0])))
 
     def on_click_released(self):
         self.clicked = False
-        self.update_img()
+        self.update()
+
+
+class Shadow(pygame.sprite.WeakDirtySprite):
+    shadow_fill, transparent_fill = (Color("black"), Color("white"))
+
+    def __init__(self, surface_size: Coordinate, *groups) -> None:
+        super().__init__(*groups)
+        self.canvas_size = surface_size
+        self.image = self._make_canvas()
+        self.rect = self.image.get_rect()
+
+    def _make_canvas(self) -> Surface:
+        canvas = Surface(self.canvas_size)
+        canvas.fill(self.transparent_fill)
+        canvas.set_colorkey(self.transparent_fill)
+        return canvas
+
+    def set_circle(self, circle: Circle) -> None:
+        canvas = self._make_canvas()
+        self.rect = pygame.draw.circle(canvas, self.shadow_fill, circle.center, circle.radius)
+        self.image = canvas.subsurface(self.rect)
+
+    def set_half(self, moon: Circle):
+        canvas = self._make_canvas()
+        r = moon.radius
+        rect = Rect(
+            (moon.center[0] - r, moon.center[1] - r),
+            (r, 2 * r),
+        )
+        self.rect = pygame.draw.rect(canvas, self.shadow_fill, rect)
+
+    def update(self, crescent_thickness: float, moon: Circle) -> None:
+        c = crescent_thickness
+        if c == 0:
+            self.set_circle(Circle(moon.center, 0))
+        else:
+            r = moon.radius
+            if r - c == 0:
+                self.set_half(moon)
+            else:
+                d = (c / 2) * (1 + (r / (r - c)))
+                self.set_circle(Circle(
+                    (moon.center[0] + d, moon.center[1]),
+                    math.sqrt(d * d + r * r)
+                ))
+            self.dirty = 1
 
 
 class Crescent(App):
     def __init__(self):
         super().__init__()
         r = self.moon.radius
+        self.shadow = Shadow(self.screen.get_size(), self.sprites)
         self.crescent_thickness_control = SliderControl(
             (self.moon.center[0] - r, self.moon.center[1] + 2 * r),
             -self.moon.radius, +self.moon.radius,
             2 * self.moon.radius,
             self.sprites
         )
+        self.crescent_thickness_control.register_listener(self)
         self.event_handler[pygame.MOUSEBUTTONDOWN] = Crescent.on_mouse_button_down
         self.event_handler[pygame.MOUSEBUTTONUP] = Crescent.on_mouse_button_up
         self.event_handler[pygame.MOUSEMOTION] = Crescent.on_mouse_move
@@ -103,6 +154,9 @@ class Crescent(App):
     def on_mouse_move(self, event):
         if self.clicking:
             self.crescent_thickness_control.on_move(event.pos)
+
+    def receive(self, crescent_thickness):
+        self.shadow.update(crescent_thickness, self.moon)
 
 
 def main():
