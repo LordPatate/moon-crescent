@@ -1,9 +1,12 @@
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Tuple, Union
 
 import pygame
 from pygame import Color, Rect, Surface, Vector2, sprite
+
+from broadcaster import BroadCaster, InnerListener
 
 Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
 EventTypeID = int
@@ -39,9 +42,15 @@ class App:
         self.screen: Surface = self.make_screen()
         self.background: Surface = self.make_background()
         self.sprites: sprite.LayeredDirty = sprite.LayeredDirty()
-        self.event_handler: Mapping[EventTypeID, Callable[[App, pygame.Event], None]] = {
-            pygame.QUIT: App._quit_loop,
-            pygame.WINDOWRESIZED: App._resize_event,
+        self.on_click_broadcaster = BroadCaster()
+        self.on_click_release_broadcaster = BroadCaster()
+        self.on_mouse_move_broadcaster = BroadCaster()
+        self.event_handler: Mapping[EventTypeID, Callable[[pygame.event.Event], None]] = {
+            pygame.QUIT: self._quit_loop,
+            pygame.WINDOWRESIZED: self._resize_event,
+            pygame.MOUSEBUTTONDOWN: self.on_click_broadcaster.broadcast,
+            pygame.MOUSEBUTTONUP: self.on_click_release_broadcaster.broadcast,
+            pygame.MOUSEMOTION: self.on_mouse_move_broadcaster.broadcast,
         }
 
     def run(self) -> None:
@@ -54,7 +63,7 @@ class App:
             for event in pygame.event.get():
                 callback = self.event_handler.get(event.type)
                 if callback:
-                    callback(self, event)
+                    callback(event)
             self.render()
             self.clock.tick(60)
 
@@ -94,3 +103,30 @@ class App:
     def _resize_event(self, event) -> None:
         new_size = (event.x, event.y)
         self.on_resize(new_size)
+
+
+class OnClickListener(ABC):
+    def __init__(self, app: App):
+        inner = InnerListener(self.on_click)
+        app.on_click_broadcaster.register_listener(inner)
+
+    @abstractmethod
+    def on_click(self, event) -> None: ...
+
+
+class OnClickReleaseListener(ABC):
+    def __init__(self, app: App):
+        inner = InnerListener(self.on_click_release)
+        app.on_click_release_broadcaster.register_listener(inner)
+
+    @abstractmethod
+    def on_click_release(self, event) -> None: ...
+
+
+class OnMouseMoveListener(ABC):
+    def __init__(self, app: App):
+        inner = InnerListener(self.on_mouse_move)
+        app.on_mouse_move_broadcaster.register_listener(inner)
+
+    @abstractmethod
+    def on_mouse_move(self, event) -> None: ...
