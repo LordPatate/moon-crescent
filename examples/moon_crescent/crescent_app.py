@@ -154,19 +154,8 @@ class Crescent(App):
     def make_background(self, size: Coordinate = DEFAULT_DISPLAY_SIZE) -> Surface:
         bkg = Surface(size)
         bkg.fill(Color("black"))
-        moon_img = load_image(Path("images").joinpath("fullmoon.jpg"), scale=0.125)
+        moon_img = load_image(Path(__file__).parent.joinpath("images").joinpath("fullmoon.jpg"), scale=0.125)
         moon_img.set_colorkey(moon_img.get_at((0, 0)))
         moon_rect = proportional_blit(moon_img, bkg, 0.5, 0.3)
         self.moon = Circle(moon_rect.center, moon_rect.width // 2)
         return bkg
-
-
-def main():
-    pygame.init()
-    app = Crescent()
-    app.run()
-    pygame.quit()
-
-
-if __name__ == "__main__":
-    main()
