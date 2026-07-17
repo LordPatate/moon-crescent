@@ -103,23 +103,15 @@ class Shadow(pygame.sprite.WeakDirtySprite):
         pygame.draw.circle(canvas, self.shadow_fill, circle.center, circle.radius)
         self.image = canvas.subsurface(self.rect)
 
-    def set_half(self):
-        canvas = self._make_canvas()
-        r = self.moon.radius
-        rect = Rect(
-            (self.moon.center[0] - r, self.moon.center[1] - r),
-            (r, 2 * r),
-        )
-        pygame.draw.rect(canvas, self.shadow_fill, rect)
-
     def update(self, crescent_thickness: float) -> None:
         c = crescent_thickness
         if c == 0:
             self.set_circle(Circle(self.moon.center, 0))
         else:
             r = self.moon.radius
-            if r - c == 0:
-                self.set_half()
+            if abs(r - c) < r / 16:
+                # Full moon
+                self.image = self._make_canvas().subsurface(self.rect)
             else:
                 d = (c / 2) * (1 + (r / (r - c)))
                 self.set_circle(Circle(
