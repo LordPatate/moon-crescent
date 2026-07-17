@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import math
 from pathlib import Path
+from typing import Tuple
 
 import pygame
 from pygame import Color, Rect, Surface
@@ -132,14 +133,17 @@ class Crescent(App):
         super().__init__()
         shadow = Shadow(self.screen.get_size(), self.moon, self.sprites)
         r = self.moon.radius
+        center_x, center_y = self.moon.center
         crescent_thickness_control = SliderControl(
             self,
-            self.slider_pos(),
+            (center_x - r, center_y + 2 * r),
             (-r, +r),
             2 * r,
             self.sprites
         )
         crescent_thickness_control.register_listener(shadow.update)
+        self.shadow = shadow
+        self.crescent_thickness_control = crescent_thickness_control
 
     @property
     def moon_img(self):
@@ -153,6 +157,15 @@ class Crescent(App):
         bkg = self.make_background(new_size)
         screen.blit(bkg, (0, 0))
         pygame.display.flip()
+        self.shadow.canvas_size = new_size
+        r = self.moon.radius
+        center_x, center_y = self.moon.center
+        self.shadow.rect.topleft = (center_x - r, center_y - r)
+        self.shadow.moon = self.moon
+        self.crescent_thickness_control.rect.topleft = (center_x - r, center_y + 2 * r)
+        for sp in self.sprites:
+            sp.dirty = 1
+        self.render()
         self.background = bkg
         self.screen = screen
 
@@ -162,8 +175,3 @@ class Crescent(App):
         moon_rect = proportional_blit(self.moon_img, bkg, 0.5, 0.3)
         self.moon = Circle(moon_rect.center, moon_rect.width // 2)
         return bkg
-
-    def slider_pos(self) -> Coordinate:
-        r = self.moon.radius
-        center_x, center_y = self.moon.center
-        return (center_x - r, center_y + 2 * r)

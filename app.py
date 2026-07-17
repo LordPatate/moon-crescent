@@ -78,11 +78,17 @@ class App:
         pygame.display.update(dirty_rects)
 
     def on_resize(self, new_size) -> None:
-        """Called when the window was resized."""
+        """Called when the window was resized.
+        By default, call app.make_screen and scale the background.
+        Everything from background to sprites is redrawn.
+        """
         screen = self.make_screen(new_size)
         bkg = pygame.transform.scale(self.background, new_size)
         screen.blit(bkg, (0, 0))
         pygame.display.flip()
+        for sp in self.sprites:
+            sp.dirty = 1
+        self.render()
         self.background = bkg
         self.screen = screen
 
