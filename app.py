@@ -11,6 +11,11 @@ from broadcaster import BroadCaster
 Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
 EventTypeID = int
 DEFAULT_DISPLAY_SIZE = (1280, 720)
+BROADCASTED_EVENTS = (
+    pygame.MOUSEBUTTONDOWN,
+    pygame.MOUSEBUTTONUP,
+    pygame.MOUSEMOTION,
+)
 
 
 def load_image(path: Path | str, scale: float = 1.):
@@ -42,15 +47,12 @@ class App:
         self.screen: Surface = self.make_screen()
         self.background: Surface = self.make_background()
         self.sprites: sprite.LayeredDirty = sprite.LayeredDirty()
-        self.on_click_broadcaster = BroadCaster()
-        self.on_click_release_broadcaster = BroadCaster()
-        self.on_mouse_move_broadcaster = BroadCaster()
-        self.event_handler: Mapping[EventTypeID, Callable[[pygame.event.Event], None]] = {
+        self.event_broadcasters: Mapping[EventTypeID, BroadCaster] = {
+            event_id: BroadCaster() for event_id in BROADCASTED_EVENTS
+        }
+        self.app_event_handler: Mapping[EventTypeID, Callable[[pygame.event.Event], None]] = {
             pygame.QUIT: self._quit_loop,
             pygame.WINDOWRESIZED: self._resize_event,
-            pygame.MOUSEBUTTONDOWN: self.on_click_broadcaster.broadcast,
-            pygame.MOUSEBUTTONUP: self.on_click_release_broadcaster.broadcast,
-            pygame.MOUSEMOTION: self.on_mouse_move_broadcaster.broadcast,
         }
 
     def run(self) -> None:
@@ -61,9 +63,12 @@ class App:
         self.on_start()
         while self.running:
             for event in pygame.event.get():
-                callback = self.event_handler.get(event.type)
+                callback = self.app_event_handler.get(event.type)
                 if callback:
                     callback(event)
+                broadcaster = self.event_broadcasters.get(event.type)
+                if broadcaster:
+                    broadcaster.broadcast(event)
             self.render()
             self.clock.tick(60)
 
@@ -100,6 +105,16 @@ class App:
         display_flags = pygame.SCALED | pygame.RESIZABLE
         return pygame.display.set_mode(size, flags=display_flags)
 
+    def register_event_listener(self, event_type: EventTypeID, callback: Callable[..., None]) -> None:
+        """Register a callback to the event broadcaster associated with an event type.
+        Raise UnsupportedEventType if there is no broadcaster for the given event type.
+        """
+        broadcaster = self.event_broadcasters.get(event_type)
+        if broadcaster:
+            broadcaster.register_listener(callback)
+        else:
+            raise UnsupportedEventType(event_type)
+
     def _quit_loop(self, _) -> None:
         self.running = False
         self.on_exit()
@@ -111,7 +126,7 @@ class App:
 
 class OnClickListener(ABC):
     def __init__(self, app: App):
-        app.on_click_broadcaster.register_listener(self.on_click)
+        app.register_event_listener(pygame.MOUSEBUTTONDOWN, self.on_click)
 
     @abstractmethod
     def on_click(self, event) -> None: ...
@@ -119,7 +134,7 @@ class OnClickListener(ABC):
 
 class OnClickReleaseListener(ABC):
     def __init__(self, app: App):
-        app.on_click_release_broadcaster.register_listener(self.on_click_release)
+        app.register_event_listener(pygame.MOUSEBUTTONUP, self.on_click_release)
 
     @abstractmethod
     def on_click_release(self, event) -> None: ...
@@ -127,7 +142,11 @@ class OnClickReleaseListener(ABC):
 
 class OnMouseMoveListener(ABC):
     def __init__(self, app: App):
-        app.on_mouse_move_broadcaster.register_listener(self.on_mouse_move)
+        app.register_event_listener(pygame.MOUSEMOTION, self.on_mouse_move)
 
     @abstractmethod
     def on_mouse_move(self, event) -> None: ...
+
+
+class UnsupportedEventType(KeyError):
+    pass
