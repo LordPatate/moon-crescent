@@ -8,7 +8,7 @@ from pygame import Color, Rect, Surface
 
 from broadcaster import BroadCaster
 from app import (DEFAULT_DISPLAY_SIZE, App, Coordinate, OnClickListener, OnClickReleaseListener, OnMouseMoveListener,
-                 load_image, proportional_blit)
+                 load_image, proportional_blit, transparent_canvas)
 
 
 @dataclass
@@ -24,6 +24,7 @@ class SliderControl(
         OnClickReleaseListener,
         OnMouseMoveListener,
 ):
+    colorkey = Color("black")
     colorset = [("darkred", "red"), ("yellow3", "yellow")]
     cursor_size = (20, 30)
     cursor_w, cursor_h = cursor_size
@@ -45,7 +46,7 @@ class SliderControl(
         self.update()
 
     def update(self):
-        self.image = Surface(self.rect.size)
+        self.image = transparent_canvas(self.rect.size)
         line_color, button_color = self.colorset[int(self.clicked)]
         line_y = self.cursor_h // 2
         half_cursor_w = self.cursor_w // 2
@@ -87,41 +88,35 @@ class SliderControl(
 class Shadow(pygame.sprite.WeakDirtySprite):
     shadow_fill, transparent_fill = (Color("black"), Color("white"))
 
-    def __init__(self, surface_size: Coordinate, moon: Circle, *groups) -> None:
+    def __init__(self, moon: Circle, *groups) -> None:
         super().__init__(*groups)
-        self.moon = moon
-        self.canvas_size = surface_size
         r = moon.radius
+        center_x, center_y = moon.center
         self.rect = Rect(
-            (self.moon.center[0] - r, self.moon.center[1] - r),
+            (center_x - r, center_y - r),
             (2 * r, 2 * r),
         )
-        self.image = self._make_canvas()
-
-    def _make_canvas(self) -> Surface:
-        canvas = Surface(self.canvas_size)
-        canvas.fill(self.transparent_fill)
-        canvas.set_colorkey(self.transparent_fill)
-        return canvas
+        self.radius = r
+        self.image = transparent_canvas(self.rect.size, self.transparent_fill)
 
     def set_circle(self, circle: Circle) -> None:
-        canvas = self._make_canvas()
+        canvas = transparent_canvas(self.rect.size, self.transparent_fill)
         pygame.draw.circle(canvas, self.shadow_fill, circle.center, circle.radius)
-        self.image = canvas.subsurface(self.rect)
+        self.image = canvas
 
     def update(self, crescent_thickness: float) -> None:
         c = crescent_thickness
         if c == 0:
-            self.set_circle(Circle(self.moon.center, 0))
+            self.image = transparent_canvas(self.rect.size, self.transparent_fill)
         else:
-            r = self.moon.radius
+            r = self.radius
             if abs(r - c) < r / 16:
                 # Full moon
-                self.image = self._make_canvas().subsurface(self.rect)
+                self.image = transparent_canvas(self.rect.size, self.transparent_fill)
             else:
                 d = (c / 2) * (1 + (r / (r - c)))
                 self.set_circle(Circle(
-                    (self.moon.center[0] + d, self.moon.center[1]),
+                    (r + d, r),
                     math.sqrt(d * d + r * r)
                 ))
             self.dirty = 1
@@ -131,7 +126,7 @@ class Crescent(App):
     def __init__(self):
         self._moon_img = None
         super().__init__()
-        shadow = Shadow(self.screen.get_size(), self.moon, self.sprites)
+        shadow = Shadow(self.moon, self.sprites)
         r = self.moon.radius
         center_x, center_y = self.moon.center
         crescent_thickness_control = SliderControl(

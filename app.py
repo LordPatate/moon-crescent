@@ -156,3 +156,10 @@ class OnMouseMoveListener(ABC):
 
 class UnsupportedEventType(KeyError):
     pass
+
+
+def transparent_canvas(size, colorkey=Color("black")) -> Surface:
+    surface = Surface(size)
+    surface.fill(colorkey)
+    surface.set_colorkey(colorkey)
+    return surface
