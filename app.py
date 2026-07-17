@@ -73,7 +73,7 @@ class App:
         pygame.display.update(dirty_rects)
 
     def on_resize(self, new_size) -> None:
-        """Called when the windows was resized."""
+        """Called when the window was resized."""
         screen = self.make_screen(new_size)
         bkg = pygame.transform.scale(self.background, new_size)
         screen.blit(bkg, (0, 0))
@@ -87,12 +87,16 @@ class App:
     def on_exit(self) -> None:
         """Called when receiving a QUIT event."""
 
-    def make_background(self, size: Coordinate = DEFAULT_DISPLAY_SIZE):
+    def make_background(self, size: Coordinate = DEFAULT_DISPLAY_SIZE) -> Surface:
+        """Called during app.__init__ to create app.background."""
         bkg = Surface(size).convert()
         bkg.fill(Color("grey"))
         return bkg
 
-    def make_screen(self, size: Coordinate = DEFAULT_DISPLAY_SIZE):
+    def make_screen(self, size: Coordinate = DEFAULT_DISPLAY_SIZE) -> Surface:
+        """Called during app.__init__ to create app.screen.
+        By default, initialize a new display with flags SCALED and RESIZABLE.
+        """
         display_flags = pygame.SCALED | pygame.RESIZABLE
         return pygame.display.set_mode(size, flags=display_flags)
 
