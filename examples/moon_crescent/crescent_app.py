@@ -131,6 +131,7 @@ class Shadow(pygame.sprite.WeakDirtySprite):
 
 class Crescent(App):
     def __init__(self):
+        self._moon_img = None
         super().__init__()
         r = self.moon.radius
         shadow = Shadow(self.screen.get_size(), self.moon, self.sprites)
@@ -143,6 +144,13 @@ class Crescent(App):
         )
         crescent_thickness_control.register_listener(shadow.update)
 
+    @property
+    def moon_img(self):
+        if not self._moon_img:
+            self._moon_img = load_image(Path(__file__).parent.joinpath("images").joinpath("fullmoon.jpg"), scale=0.125)
+            self._moon_img.set_colorkey(self.moon_img.get_at((0, 0)))
+        return self._moon_img
+
     def on_resize(self, new_size):
         screen = self.make_screen(new_size)
         bkg = self.make_background(new_size)
@@ -154,8 +162,6 @@ class Crescent(App):
     def make_background(self, size: Coordinate = DEFAULT_DISPLAY_SIZE) -> Surface:
         bkg = Surface(size)
         bkg.fill(Color("black"))
-        moon_img = load_image(Path(__file__).parent.joinpath("images").joinpath("fullmoon.jpg"), scale=0.125)
-        moon_img.set_colorkey(moon_img.get_at((0, 0)))
-        moon_rect = proportional_blit(moon_img, bkg, 0.5, 0.3)
+        moon_rect = proportional_blit(self.moon_img, bkg, 0.5, 0.3)
         self.moon = Circle(moon_rect.center, moon_rect.width // 2)
         return bkg
