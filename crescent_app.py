@@ -26,7 +26,7 @@ class SliderControl(
     colorset = [("darkred", "red"), ("yellow3", "yellow")]
 
     def __init__(self, app: App, pos: Coordinate, min_val: float, max_val: float, segment_length: int, *groups) -> None:
-        super().__init__(*groups)
+        pygame.sprite.WeakDirtySprite.__init__(self, *groups)
         BroadCaster.__init__(self)
         OnClickListener.__init__(self, app)
         OnClickReleaseListener.__init__(self, app)
@@ -112,7 +112,7 @@ class Shadow(pygame.sprite.WeakDirtySprite):
         )
         pygame.draw.rect(canvas, self.shadow_fill, rect)
 
-    def receive(self, crescent_thickness: float) -> None:
+    def update(self, crescent_thickness: float) -> None:
         c = crescent_thickness
         if c == 0:
             self.set_circle(Circle(self.moon.center, 0))
@@ -141,7 +141,7 @@ class Crescent(App):
             2 * self.moon.radius,
             self.sprites
         )
-        crescent_thickness_control.register_listener(shadow)
+        crescent_thickness_control.register_listener(shadow.update)
 
     def on_resize(self, new_size):
         screen = self.make_screen(new_size)

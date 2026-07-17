@@ -1,26 +1,13 @@
-from collections.abc import MutableSequence
-from typing import Protocol
-
-
-class Listener(Protocol):
-    def receive(self, *args) -> None: ...
-
-
-class InnerListener:
-    def __init__(self, callback):
-        self.callback = callback
-
-    def receive(self, *args) -> None:
-        self.callback(*args)
+from collections.abc import Callable, MutableSequence
 
 
 class BroadCaster:
     def __init__(self) -> None:
-        self.listeners: MutableSequence[Listener] = []
+        self.listeners: MutableSequence[Callable[..., None]] = []
 
-    def register_listener(self, listener: Listener) -> None:
-        self.listeners.append(listener)
+    def register_listener(self, callback: Callable[..., None]) -> None:
+        self.listeners.append(callback)
 
-    def broadcast(self, *args) -> None:
-        for listener in self.listeners:
-            listener.receive(*args)
+    def broadcast(self, *args, **kwargs) -> None:
+        for callback in self.listeners:
+            callback(*args, **kwargs)

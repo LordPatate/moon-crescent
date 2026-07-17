@@ -6,7 +6,7 @@ from typing import Tuple, Union
 import pygame
 from pygame import Color, Rect, Surface, Vector2, sprite
 
-from broadcaster import BroadCaster, InnerListener
+from broadcaster import BroadCaster
 
 Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
 EventTypeID = int
@@ -107,8 +107,7 @@ class App:
 
 class OnClickListener(ABC):
     def __init__(self, app: App):
-        inner = InnerListener(self.on_click)
-        app.on_click_broadcaster.register_listener(inner)
+        app.on_click_broadcaster.register_listener(self.on_click)
 
     @abstractmethod
     def on_click(self, event) -> None: ...
@@ -116,8 +115,7 @@ class OnClickListener(ABC):
 
 class OnClickReleaseListener(ABC):
     def __init__(self, app: App):
-        inner = InnerListener(self.on_click_release)
-        app.on_click_release_broadcaster.register_listener(inner)
+        app.on_click_release_broadcaster.register_listener(self.on_click_release)
 
     @abstractmethod
     def on_click_release(self, event) -> None: ...
@@ -125,8 +123,7 @@ class OnClickReleaseListener(ABC):
 
 class OnMouseMoveListener(ABC):
     def __init__(self, app: App):
-        inner = InnerListener(self.on_mouse_move)
-        app.on_mouse_move_broadcaster.register_listener(inner)
+        app.on_mouse_move_broadcaster.register_listener(self.on_mouse_move)
 
     @abstractmethod
     def on_mouse_move(self, event) -> None: ...
