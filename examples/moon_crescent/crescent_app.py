@@ -24,27 +24,32 @@ class SliderControl(
         OnMouseMoveListener,
 ):
     colorset = [("darkred", "red"), ("yellow3", "yellow")]
+    cursor_size = (20, 30)
+    cursor_w, cursor_h = cursor_size
 
-    def __init__(self, app: App, pos: Coordinate, min_val: float, max_val: float, segment_length: int, *groups) -> None:
+    def __init__(self, app: App, pos: Coordinate, val_range: Tuple[float, float], segment_length: int, *groups) -> None:
         pygame.sprite.WeakDirtySprite.__init__(self, *groups)
         BroadCaster.__init__(self)
         OnClickListener.__init__(self, app)
         OnClickReleaseListener.__init__(self, app)
         OnMouseMoveListener.__init__(self, app)
         self.clicked = False
+        min_val, max_val = val_range
         self.min_val = min_val
         self.max_val = max_val
         self.segment_length = segment_length  # length, in pixel, of the segment on which the button will slide
         self.val = (max_val - min_val) / 2 + min_val
-        self.x_pos = 10 + segment_length // 2  # current position of the button relative to the image
-        self.rect = Rect(pos, (segment_length + 20, 30))
+        self.x_pos = self.cursor_w // 2 + segment_length // 2  # current position of the button relative to the image
+        self.rect = Rect(pos, (segment_length + self.cursor_w, self.cursor_h))
         self.update()
 
     def update(self):
-        self.image = Surface((self.segment_length + 20, 30))
+        self.image = Surface(self.rect.size)
         line_color, button_color = self.colorset[int(self.clicked)]
-        pygame.draw.line(self.image, line_color, (10, 15), (10 + self.segment_length, 15))
-        pygame.draw.rect(self.image, button_color, Rect((self.x_pos - 10, 0), (20, 30)))
+        line_y = self.cursor_h // 2
+        half_cursor_w = self.cursor_w // 2
+        pygame.draw.line(self.image, line_color, (half_cursor_w, line_y), (half_cursor_w + self.segment_length, line_y))
+        pygame.draw.rect(self.image, button_color, Rect((self.x_pos - half_cursor_w, 0), self.cursor_size))
         self.dirty = 1
 
     def move_to(self, x: int) -> float:
@@ -125,13 +130,13 @@ class Crescent(App):
     def __init__(self):
         self._moon_img = None
         super().__init__()
-        r = self.moon.radius
         shadow = Shadow(self.screen.get_size(), self.moon, self.sprites)
+        r = self.moon.radius
         crescent_thickness_control = SliderControl(
             self,
-            (self.moon.center[0] - r, self.moon.center[1] + 2 * r),
-            -self.moon.radius, +self.moon.radius,
-            2 * self.moon.radius,
+            self.slider_pos(),
+            (-r, +r),
+            2 * r,
             self.sprites
         )
         crescent_thickness_control.register_listener(shadow.update)
@@ -157,3 +162,8 @@ class Crescent(App):
         moon_rect = proportional_blit(self.moon_img, bkg, 0.5, 0.3)
         self.moon = Circle(moon_rect.center, moon_rect.width // 2)
         return bkg
+
+    def slider_pos(self) -> Coordinate:
+        r = self.moon.radius
+        center_x, center_y = self.moon.center
+        return (center_x - r, center_y + 2 * r)
