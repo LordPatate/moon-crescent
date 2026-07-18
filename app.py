@@ -11,6 +11,7 @@ from broadcaster import BroadCaster
 Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
 EventTypeID = int
 DEFAULT_DISPLAY_SIZE = (1280, 720)
+DEFAULT_DISPLAY_FLAGS = pygame.RESIZABLE
 BROADCASTED_EVENTS = (
     pygame.MOUSEBUTTONDOWN,
     pygame.MOUSEBUTTONUP,
@@ -41,11 +42,11 @@ def proportional_blit(source: Surface, dest: Surface, x: float, y: float, *blit_
 
 
 class App:
-    def __init__(self) -> None:
+    def __init__(self, size: Coordinate = DEFAULT_DISPLAY_SIZE, display_flags: int = DEFAULT_DISPLAY_FLAGS) -> None:
         self.running: bool = False
         self.clock = pygame.time.Clock()
-        self.screen: Surface = self.make_screen()
-        self.background: Surface = self.make_background()
+        self.screen: Surface = pygame.display.set_mode(size, display_flags)
+        self.background: Surface = self.make_background(size)
         self.sprites: sprite.LayeredDirty = sprite.LayeredDirty()
         self.event_broadcasters: Mapping[EventTypeID, BroadCaster] = {
             event_id: BroadCaster() for event_id in BROADCASTED_EVENTS
@@ -99,13 +100,6 @@ class App:
         bkg = Surface(size).convert()
         bkg.fill(Color("grey"))
         return bkg
-
-    def make_screen(self, size: Coordinate = DEFAULT_DISPLAY_SIZE) -> Surface:
-        """Called during app.__init__ to create app.screen.
-        By default, initialize a new display with flag RESIZABLE.
-        """
-        display_flags = pygame.RESIZABLE
-        return pygame.display.set_mode(size, flags=display_flags)
 
     def register_event_listener(self, event_type: EventTypeID, callback: Callable[..., None]) -> None:
         """Register a callback to the event broadcaster associated with an event type.

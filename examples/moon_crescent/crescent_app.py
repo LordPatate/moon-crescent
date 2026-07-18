@@ -125,7 +125,7 @@ class Shadow(pygame.sprite.WeakDirtySprite):
 class Crescent(App):
     def __init__(self):
         self._moon_img = None
-        super().__init__()
+        super().__init__((450, 660))
         shadow = Shadow(self.moon, self.sprites)
         r = self.moon.radius
         center_x, center_y = self.moon.center
