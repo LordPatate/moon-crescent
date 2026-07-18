@@ -148,21 +148,17 @@ class Crescent(App):
         return self._moon_img
 
     def on_resize(self, new_size):
-        screen = self.make_screen(new_size)
         bkg = self.make_background(new_size)
-        screen.blit(bkg, (0, 0))
+        self.background = bkg
+        self.screen.blit(bkg, (0, 0))
         pygame.display.flip()
-        self.shadow.canvas_size = new_size
         r = self.moon.radius
         center_x, center_y = self.moon.center
         self.shadow.rect.topleft = (center_x - r, center_y - r)
-        self.shadow.moon = self.moon
         self.crescent_thickness_control.rect.topleft = (center_x - r, center_y + 2 * r)
         for sp in self.sprites:
             sp.dirty = 1
         self.render()
-        self.background = bkg
-        self.screen = screen
 
     def make_background(self, size: Coordinate = DEFAULT_DISPLAY_SIZE) -> Surface:
         bkg = Surface(size)

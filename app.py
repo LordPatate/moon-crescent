@@ -57,8 +57,6 @@ class App:
 
     def run(self) -> None:
         """Run the main loop."""
-        self.screen.blit(self.background, (0, 0))
-        pygame.display.flip()
         self.running = True
         self.on_start()
         while self.running:
@@ -79,18 +77,16 @@ class App:
 
     def on_resize(self, new_size) -> None:
         """Called when the window was resized.
-        By default, call app.make_screen and scale the background.
-        Everything from background to sprites is redrawn.
+        By default, scale the background.
+        All sprites are redrawn.
         """
-        screen = self.make_screen(new_size)
         bkg = pygame.transform.scale(self.background, new_size)
-        screen.blit(bkg, (0, 0))
+        self.background = bkg
+        self.screen.blit(bkg, (0, 0))
         pygame.display.flip()
         for sp in self.sprites:
             sp.dirty = 1
         self.render()
-        self.background = bkg
-        self.screen = screen
 
     def on_start(self) -> None:
         """Called in run() right before entering the main loop."""
@@ -106,9 +102,9 @@ class App:
 
     def make_screen(self, size: Coordinate = DEFAULT_DISPLAY_SIZE) -> Surface:
         """Called during app.__init__ to create app.screen.
-        By default, initialize a new display with flags SCALED and RESIZABLE.
+        By default, initialize a new display with flag RESIZABLE.
         """
-        display_flags = pygame.SCALED | pygame.RESIZABLE
+        display_flags = pygame.RESIZABLE
         return pygame.display.set_mode(size, flags=display_flags)
 
     def register_event_listener(self, event_type: EventTypeID, callback: Callable[..., None]) -> None:
