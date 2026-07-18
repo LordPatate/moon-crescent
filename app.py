@@ -1,39 +1,14 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from pathlib import Path
-from typing import Tuple, Union
 
 import pygame
-from pygame import Color, Rect, Surface, Vector2, sprite
+from pygame import Color, Surface, sprite
 
 from broadcaster import BroadCaster
+from my_types import Coordinate
 
-Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
-EventTypeID = int
 DEFAULT_DISPLAY_SIZE = (1280, 720)
 DEFAULT_DISPLAY_FLAGS = pygame.RESIZABLE
-
-
-def load_image(path: Path | str, scale: float = 1.):
-    image = pygame.image.load(path).convert()
-    image = pygame.transform.scale_by(image, scale)
-    return image
-
-
-def proportional_blit(source: Surface, dest: Surface, x: float, y: float, *blit_args) -> Rect:
-    """Blit source on dest.
-    x and y are coordinates relative to dest's top-left corner;
-    expressed as proportions of dest width and height respectively;
-    and describe the desired position of the center of source.
-    """
-    source_w, source_h = source.get_size()
-    dest_w, dest_h = dest.get_size()
-    x_offset, y_offset = source_w // 2, source_h // 2
-    pos = (
-        int(dest_w * x) - x_offset,
-        int(dest_h * y) - y_offset,
-    )
-    return dest.blit(source, pos, *blit_args)
 
 
 class App:
@@ -88,7 +63,7 @@ class App:
         bkg.fill(Color("grey"))
         return bkg
 
-    def register_event_listener(self, event_type: EventTypeID, callback: Callable[..., None]) -> None:
+    def register_event_listener(self, event_type: int, callback: Callable[..., None]) -> None:
         """Register a callback to the event broadcaster associated with an event type."""
         self.event_broadcasters[event_type].register_listener(callback)
 
@@ -123,10 +98,3 @@ class OnMouseMoveListener(ABC):
 
     @abstractmethod
     def on_mouse_move(self, event) -> None: ...
-
-
-def transparent_canvas(size, colorkey=Color("black")) -> Surface:
-    surface = Surface(size)
-    surface.fill(colorkey)
-    surface.set_colorkey(colorkey)
-    return surface

@@ -7,8 +7,10 @@ import pygame
 from pygame import Color, Rect, Surface
 
 from broadcaster import BroadCaster
-from app import (DEFAULT_DISPLAY_SIZE, App, Coordinate, OnClickListener, OnClickReleaseListener, OnMouseMoveListener,
-                 load_image, proportional_blit, transparent_canvas)
+from app import DEFAULT_DISPLAY_SIZE, App, OnClickListener, OnClickReleaseListener, OnMouseMoveListener
+from my_types import Coordinate
+
+from misc import load_image, proportional_blit, transparent_canvas
 
 
 @dataclass
