@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Tuple, Union
 
@@ -12,11 +12,6 @@ Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
 EventTypeID = int
 DEFAULT_DISPLAY_SIZE = (1280, 720)
 DEFAULT_DISPLAY_FLAGS = pygame.RESIZABLE
-BROADCASTED_EVENTS = (
-    pygame.MOUSEBUTTONDOWN,
-    pygame.MOUSEBUTTONUP,
-    pygame.MOUSEMOTION,
-)
 
 
 def load_image(path: Path | str, scale: float = 1.):
@@ -48,13 +43,11 @@ class App:
         self.screen: Surface = pygame.display.set_mode(size, display_flags)
         self.background: Surface = self.make_background(size)
         self.sprites: sprite.LayeredDirty = sprite.LayeredDirty()
-        self.event_broadcasters: Mapping[EventTypeID, BroadCaster] = {
-            event_id: BroadCaster() for event_id in BROADCASTED_EVENTS
-        }
-        self.app_event_handler: Mapping[EventTypeID, Callable[[pygame.event.Event], None]] = {
-            pygame.QUIT: self._quit_loop,
-            pygame.WINDOWRESIZED: self._resize_event,
-        }
+        self.event_broadcasters: Sequence[BroadCaster] = [
+            BroadCaster() for _ in range(pygame.NUMEVENTS)
+        ]
+        self.register_event_listener(pygame.QUIT, self._quit_loop)
+        self.register_event_listener(pygame.WINDOWRESIZED, self._resize_event)
 
     def run(self) -> None:
         """Run the main loop."""
@@ -62,12 +55,7 @@ class App:
         self.on_start()
         while self.running:
             for event in pygame.event.get():
-                callback = self.app_event_handler.get(event.type)
-                if callback:
-                    callback(event)
-                broadcaster = self.event_broadcasters.get(event.type)
-                if broadcaster:
-                    broadcaster.broadcast(event)
+                self.event_broadcasters[event.type].broadcast(event)
             self.render()
             self.clock.tick(60)
 
@@ -78,8 +66,7 @@ class App:
 
     def on_resize(self, new_size) -> None:
         """Called when the window was resized.
-        By default, scale the background.
-        All sprites are redrawn.
+        By default, scale the background and redraw all sprites.
         """
         bkg = pygame.transform.scale(self.background, new_size)
         self.background = bkg
@@ -102,14 +89,8 @@ class App:
         return bkg
 
     def register_event_listener(self, event_type: EventTypeID, callback: Callable[..., None]) -> None:
-        """Register a callback to the event broadcaster associated with an event type.
-        Raise UnsupportedEventType if there is no broadcaster for the given event type.
-        """
-        broadcaster = self.event_broadcasters.get(event_type)
-        if broadcaster:
-            broadcaster.register_listener(callback)
-        else:
-            raise UnsupportedEventType(event_type)
+        """Register a callback to the event broadcaster associated with an event type."""
+        self.event_broadcasters[event_type].register_listener(callback)
 
     def _quit_loop(self, _) -> None:
         self.running = False
